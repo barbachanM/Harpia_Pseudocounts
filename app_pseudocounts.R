@@ -39,7 +39,7 @@ ui <- dashboardPage(skin = "black",
                                   choices = list("-" = 0, "H2" = 2, "H3" = 3, "H4" = 4)),
                       
                       selectInput("pseudocount", label = h4("Select Pseudocount value for Analysis"),
-                                  choices = list("No pseudocounts" = 0, "1" = 1, "0.5" = 0.5)),
+                                  choices = list("No pseudocounts" = 0, "1" = 1, "0.5" = 0.5, "1/n" = "pc")),
                       tags$hr(),
                       
                       actionButton("run", "Run!")
@@ -284,6 +284,10 @@ server <- shinyServer(function(input, output, session) {
             
             h11 = 0
             for (call in alphabetH1){
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH1)
+              }
+              print(pc)
               values(ProbabilityHash$H1, keys= call) = (values(CountHash$H1, keys= call)+as.double(pc))/((totalH1)+nH1*as.double(pc))
               F1[f][call,] = values(ProbabilityHash$H1, keys= call)
               #values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
@@ -296,6 +300,9 @@ server <- shinyServer(function(input, output, session) {
             }
             h22 = 0
             for (call in alphabetH2){
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH2)
+              }
               first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
               values(ProbabilityHash$H2, keys= call) = (as.double(values(CountHash$H2, keys= call))+as.double(pc))/((totalH2[first])+as.double(pc)*nH2)
               F2[f][call,] = values(ProbabilityHash$H2, keys= call)
@@ -396,6 +403,9 @@ server <- shinyServer(function(input, output, session) {
         
             h11 = 0
             for (call in alphabetH1){
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH1)
+              }
               values(ProbabilityHash$H1, keys= call) = (values(CountHash$H1, keys= call)+as.double(pc))/((totalH1)+as.double(pc)*nH1)
               F1[f][call,] = values(ProbabilityHash$H1, keys= call)
               #values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
@@ -408,6 +418,9 @@ server <- shinyServer(function(input, output, session) {
             }
             h22 = 0
             for (call in alphabetH2){
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH2)
+              }
               first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
               values(ProbabilityHash$H2, keys= call) = (as.double(values(CountHash$H2, keys= call))+as.double(pc))/((totalH2[first])+as.double(pc)*nH2)
               F2[f][call,] = values(ProbabilityHash$H2, keys= call)
@@ -469,7 +482,7 @@ server <- shinyServer(function(input, output, session) {
       })
       EntropyAnalysisGroup1 = reactive({ if(!is.null(EntropyDataGroup1())){
         data = EntropyDataGroup1()
-        
+        pc = isolate(input$pseudocount)
         f1 = isolate(row.names(data$df))
         Entropy = isolate(data$df)
         Counts2 = isolate(data$C_2)
@@ -532,7 +545,10 @@ server <- shinyServer(function(input, output, session) {
 
             h11 = 0
             for (call in alphabetH1){
-              values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH1)
+              }
+              values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/(totalH1 + as.double(pc)*nH1)
               F1[f][call,] = values(ProbabilityHash$H1, keys= call)
               #values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
               values(EntropyHash$H1, keys= call) = -1*values(ProbabilityHash$H1, keys= call)*log2(values(ProbabilityHash$H1, keys= call))
@@ -544,8 +560,11 @@ server <- shinyServer(function(input, output, session) {
             }
             h22 = 0
             for (call in alphabetH2){
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH2)
+              }
               first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
-              values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
+              values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/(totalH2[first]+ as.double(pc)*nH2)
               F2[f][call,] = values(ProbabilityHash$H2, keys= call)
               # values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
               values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
@@ -557,10 +576,13 @@ server <- shinyServer(function(input, output, session) {
             }
             h33 = 0
             for (call in alphabetH3){
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH3)
+              }
               firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
               first = firstTwo[1]
               firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
-              values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
+              values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/(totalH3[firstTwo]+ as.double(pc)*nH3)
               F3[f][call,] = values(ProbabilityHash$H3, keys= call)
               # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
               values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
@@ -617,7 +639,7 @@ server <- shinyServer(function(input, output, session) {
       })
       EntropyAnalysisGroup2 = reactive({ if(!is.null(EntropyDataGroup2())){
         data = EntropyDataGroup2()
-        
+        pc = isolate(input$pseudocount)
         f1 = isolate(row.names(data$df))
         Entropy = isolate(data$df)
         Counts2 = isolate(data$C_2)
@@ -681,7 +703,10 @@ server <- shinyServer(function(input, output, session) {
 
             h11 = 0
             for (call in alphabetH1){
-              values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1+nH1
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH1)
+              }
+              values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/(totalH1+ as.double(pc)*nH1)
               F1[f][call,] = values(ProbabilityHash$H1, keys= call)
               #values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
               values(EntropyHash$H1, keys= call) = -1*values(ProbabilityHash$H1, keys= call)*log2(values(ProbabilityHash$H1, keys= call))
@@ -693,8 +718,11 @@ server <- shinyServer(function(input, output, session) {
             }
             h22 = 0
             for (call in alphabetH2){
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH2)
+              }
               first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
-              values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
+              values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/(totalH2[first]+ as.double(pc)*nH2)
               F2[f][call,] = values(ProbabilityHash$H2, keys= call)
               # values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
               values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
@@ -706,10 +734,13 @@ server <- shinyServer(function(input, output, session) {
             }
             h33 = 0
             for (call in alphabetH3){
+              if(input$pseudocount == "pc"){
+                pc = as.double(1/nH3)
+              }
               firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
               first = firstTwo[1]
               firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
-              values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
+              values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/(totalH3[firstTwo]+ as.double(pc)*nH3)
               F3[f][call,] = values(ProbabilityHash$H3, keys= call)
               # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
               values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
@@ -853,7 +884,10 @@ server <- shinyServer(function(input, output, session) {
           
           h11 = 0
           for (call in alphabetH1){
-            values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
+            if(input$pseudocount == "pc"){
+              pc = as.double(1/nH1)
+            }
+            values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/(totalH1+nH1*as.double(pc))
             F1[f][call,] = values(ProbabilityHash$H1, keys= call)
             #values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
             values(EntropyHash$H1, keys= call) = -1*values(ProbabilityHash$H1, keys= call)*log2(values(ProbabilityHash$H1, keys= call))
@@ -865,8 +899,11 @@ server <- shinyServer(function(input, output, session) {
           }
           h22 = 0
           for (call in alphabetH2){
+            if(input$pseudocount == "pc"){
+              pc = as.double(1/nH2)
+            }
             first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
-            values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
+            values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/(totalH2[first]+nH2*as.double(pc))
             F2[f][call,] = values(ProbabilityHash$H2, keys= call)
             # values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
             values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
@@ -878,10 +915,13 @@ server <- shinyServer(function(input, output, session) {
           }
           h33 = 0
           for (call in alphabetH3){
+            if(input$pseudocount == "pc"){
+              pc = as.double(1/nH3)
+            }
             firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
             first = firstTwo[1]
             firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
-            values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
+            values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/(totalH3[firstTwo]+nH3*as.double(pc))
             F3[f][call,] = values(ProbabilityHash$H3, keys= call)
             # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
             values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
@@ -894,11 +934,14 @@ server <- shinyServer(function(input, output, session) {
           
           h44 = 0
           for (call in alphabetH4){
+            if(input$pseudocount == "pc"){
+              pc = as.double(1/nH4)
+            }
             separate = unlist(strsplit(call,'\t', fixed=FALSE))
             first = separate[1]
             firstTwo = paste(separate[1],'\t',separate[2],sep='')
             three =  paste(separate[1],'\t',separate[2],'\t',separate[3],sep='')
-            values(ProbabilityHash$H4, keys= call) = values(CountHash$H4, keys= call)/totalH4[three]
+            values(ProbabilityHash$H4, keys= call) = values(CountHash$H4, keys= call)/(totalH4[three]+nH4*as.double(pc))
             F4[f][call,] = values(ProbabilityHash$H4, keys= call)
             # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
             values(EntropyHash$H4, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= three)*values(ProbabilityHash$H4, keys= call)*log2(values(ProbabilityHash$H4, keys= call))
@@ -1040,7 +1083,10 @@ server <- shinyServer(function(input, output, session) {
           
           h11 = 0
           for (call in alphabetH1){
-            values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
+            if(input$pseudocount == "pc"){
+              pc = as.double(1/nH1)
+            }
+            values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/(totalH1+nH1*as.double(pc))
             F1[f][call,] = values(ProbabilityHash$H1, keys= call)
             #values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
             values(EntropyHash$H1, keys= call) = -1*values(ProbabilityHash$H1, keys= call)*log2(values(ProbabilityHash$H1, keys= call))
@@ -1052,8 +1098,11 @@ server <- shinyServer(function(input, output, session) {
           }
           h22 = 0
           for (call in alphabetH2){
+            if(input$pseudocount == "pc"){
+              pc = as.double(1/nH2)
+            }
             first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
-            values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
+            values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/(totalH2[first]+nH2*as.double(pc))
             F2[f][call,] = values(ProbabilityHash$H2, keys= call)
             # values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
             values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
@@ -1065,10 +1114,13 @@ server <- shinyServer(function(input, output, session) {
           }
           h33 = 0
           for (call in alphabetH3){
+            if(input$pseudocount == "pc"){
+              pc = as.double(1/nH3)
+            }
             firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
             first = firstTwo[1]
             firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
-            values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
+            values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/(totalH3[firstTwo]+nH3*as.double(pc))
             F3[f][call,] = values(ProbabilityHash$H3, keys= call)
             # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
             values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
@@ -1081,11 +1133,14 @@ server <- shinyServer(function(input, output, session) {
           
           h44 = 0
           for (call in alphabetH4){
+            if(input$pseudocount == "pc"){
+              pc = as.double(1/nH4)
+            }
             separate = unlist(strsplit(call,'\t', fixed=FALSE))
             first = separate[1]
             firstTwo = paste(separate[1],'\t',separate[2],sep='')
             three =  paste(separate[1],'\t',separate[2],'\t',separate[3],sep='')
-            values(ProbabilityHash$H4, keys= call) = values(CountHash$H4, keys= call)/totalH4[three]
+            values(ProbabilityHash$H4, keys= call) = values(CountHash$H4, keys= call)/(totalH4[three]+nH4*as.double(pc))
             F4[f][call,] = values(ProbabilityHash$H4, keys= call)
             # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
             values(EntropyHash$H4, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= three)*values(ProbabilityHash$H4, keys= call)*log2(values(ProbabilityHash$H4, keys= call))
